@@ -7,6 +7,13 @@ NUMPY_INCLUDE = $(PYTHON_DIR)/lib/python2.7/site-packages/numpy/core/include/num
 BOOST_INC = /usr/local/include
 BOOST_LIB = /usr/local/lib
 
+NOBOOSTTARGET = test_noboost
+$(NOBOOSTTARGET).so: $(NOBOOSTTARGET).o
+	g++ -shared $(NOBOOSTTARGET).o -L$(PYTHON_DIR)/lib -lpython$(PYTHON_VERSION) -o $(NOBOOSTTARGET).so
+
+$(NOBOOSTTARGET).o: $(NOBOOSTTARGET).cpp
+	g++ -I$(PYTHON_INCLUDE) -I$(NUMPY_INCLUDE) -fPIC -c $(NOBOOSTTARGET).cpp
+
 
 TARGET = nptest
 #-Wl,--export-dynamic
