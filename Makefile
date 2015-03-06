@@ -12,7 +12,7 @@ $(NOBOOSTTARGET).so: $(NOBOOSTTARGET).o
 	g++ -shared $(NOBOOSTTARGET).o -L$(PYTHON_DIR)/lib -lpython$(PYTHON_VERSION) -o $(NOBOOSTTARGET).so
 
 $(NOBOOSTTARGET).o: $(NOBOOSTTARGET).cpp
-	g++ -I$(PYTHON_INCLUDE) -I$(NUMPY_INCLUDE) -fPIC -c $(NOBOOSTTARGET).cpp
+	g++ -I$(PYTHON_INCLUDE) -I$(NUMPY_INCLUDE) -fPIC `pkg-config vips-cpp --cflags --libs` -c $(NOBOOSTTARGET).cpp
 
 
 TARGET = nptest

@@ -4,11 +4,14 @@
 #include <arrayobject.h>
 #include <assert.h>
 #include <vips/vips8>
+// #include <vips/vips-operators.h>
+
 typedef long long int int64;
 typedef unsigned short int uint8;
 
 extern "C" void init_ImWorker();
 PyObject* decodeTransformListMT(PyObject *self, PyObject *args);
+void decodeImgToArray(PyObject *pyJpegStrings, PyArrayObject *pyTarget, int start_img, int end_img, int img_size);
 using namespace vips;
 
 // using namespace std;
@@ -20,8 +23,7 @@ static PyMethodDef _ImWorkerMethods[] = {{ "decodeTransformListMT",         deco
 
 void init_ImWorker() {
     (void) Py_InitModule("_ImWorker", _ImWorkerMethods);
-    if ( VIPS_INIT("istring") )
-        return( -1 );
+    VIPS_INIT("istring");
     import_array();
 }
 
@@ -39,14 +41,14 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args) {
     }
 
     // Do the checks here:
-    assert(PyTarget != NULL);
+    assert(pyTarget != NULL);
     assert(PyArray_ISONESEGMENT(pyTarget));
     assert(PyArray_CHKFLAGS(pyTarget, NPY_ARRAY_C_CONTIGUOUS));
     assert(PyArray_NDIM(pyTarget)==2);
 
     // Thread* threads[NUM_JPEG_DECODER_THREADS];
     int num_imgs = PyList_GET_SIZE(pyJpegStrings);
-    decodeImgToArray(pyJpegStrings, pyTarget, 0, 1, img_size);
+    decodeImgToArray((PyObject*) pyJpegStrings, pyTarget, 0, 1, img_size);
     // int num_imgs_per_thread = DIVUP(num_imgs, NUM_JPEG_DECODER_THREADS);
     // Matrix& dstMatrix = *new Matrix(pyTarget);
     // for (int t = 0; t < NUM_JPEG_DECODER_THREADS; ++t) {
@@ -66,21 +68,18 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", 0);
 }
 
-void decodeImgToArray(PyObject *pyJpegStrings, PyArrayObject *pyTarget, start_img, end_img, img_size) {
+void decodeImgToArray(PyObject *pyJpegStrings, PyArrayObject *pyTarget, int start_img, int end_img, int img_size) {
     int m = PyArray_DIM(pyTarget, 0);
     int n = PyArray_DIM(pyTarget, 1);
-    uint8 *data = (uint8 *) PyArray_DATA(pyTarget);
+    uint8 *tgt = (uint8 *) PyArray_DATA(pyTarget);
 
     for (int idx = start_img; idx < end_img; idx++) {
         PyObject* pySrc = PyList_GET_ITEM(pyJpegStrings, idx);
         unsigned char* src = (unsigned char *) PyString_AsString(pySrc);
-        size_t src_len = PyString_GET_SIZE(pySrc)
-        VImage::option()->
-        set( "extend", VIPS_EXTEND_BACKGROUND )->
-        set( "background", 128 )
-        VImage in = VImage::new_from_buffer( (void *) src, src_len, "jpg");
-
-
+        size_t src_len = PyString_GET_SIZE(pySrc);
+        VipsBlob *vb = vips_blob_new (NULL, src, src_len);
+        VImage in = vips_jpegload_buffer( vb );
+        std::memcpy((void *) tgt, in.data(), img_size * sizeof(uint8));
     }
 
         // if (PyArray_ISONESEGMENT(pyTarget) && PyArray_NDIM(pyTarget)!=0) { 
@@ -102,7 +101,7 @@ void decodeImgToArray(PyObject *pyJpegStrings, PyArrayObject *pyTarget, start_im
 //     PyObject* pySrc = PyList_GET_ITEM(_pyList, idx);
 //     unsigned char* src = (unsigned char*)PyString_AsString(pySrc);
 //     size_t src_len = PyString_GET_SIZE(pySrc);
-    
+
 //     struct jpeg_decompress_struct cinf;
 //     struct jpeg_error_mgr jerr;
 //     cinf.err = jpeg_std_error(&jerr);
@@ -120,7 +119,7 @@ void decodeImgToArray(PyObject *pyJpegStrings, PyArrayObject *pyTarget, start_im
 //         _decodeTargetSize = width * height * 3 * 3;
 //         _decodeTarget = (unsigned char*)malloc(_decodeTargetSize);
 //     }
-    
+
 //     while (cinf.output_scanline < cinf.output_height) {
 //         JSAMPROW tmp = &_decodeTarget[width * cinf.out_color_components * cinf.output_scanline];
 //         assert(jpeg_read_scanlines(&cinf, &tmp, 1) > 0);
