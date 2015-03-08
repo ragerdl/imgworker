@@ -3,41 +3,51 @@
 #include <Python.h>
 #include <arrayobject.h>
 #include <assert.h>
-#include <cv.h>
-#include <highgui.h>
-#include <jpeglib.h>
+#include "test_noboost.h"
 
-typedef long long int int64;
-typedef unsigned short int uint8;
-
-extern "C" void init_ImWorker();
+extern "C" void init_ImgWorker();
 PyObject* decodeTransformListMT(PyObject *self, PyObject *args);
-void decodeImgToArray(PyObject *pyJpegStrings, PyArrayObject *pyTarget, int start_img, int end_img, int img_size, int inner_size);
-void copy_image_to_column(unsigned char *src, int srclen, unsigned char *tgt, int destcol, int tgtncol);
+// void decodeImgToArray(PyObject *pyJpegStrings, PyArrayObject *pyTarget, int start_img, int end_img, int img_size, int inner_size);
+// void copy_image_to_column(unsigned char *src, int srclen, unsigned char *tgt, int destcol, int tgtncol);
 
-void decodeJpeg(unsigned char* src, size_t src_len, unsigned char* dest, int destsize, int& width, int& height);
+// void decodeJpeg(unsigned char* src, size_t src_len, unsigned char* dest, int destsize, int& width, int& height);
 
-using namespace cv;
-
-static PyMethodDef _ImWorkerMethods[] = {{ "decodeTransformListMT",         decodeTransformListMT,             METH_VARARGS },
+static PyMethodDef _ImgWorkerMethods[] = {{ "decodeTransformListMT",         decodeTransformListMT,             METH_VARARGS },
                                          { NULL, NULL }
 };
 
-void init_ImWorker() {
-    (void) Py_InitModule("_ImWorker", _ImWorkerMethods);
+ImgWorker::ImgWorker(PyObject* pyList, PyArrayObject *pyTarget, int start_img, int end_img, int img_size, int inner_size, bool center, int num_imgs)
+: _pyList(pyList), _pyTgt(pyTarget), _start_img(start_img), _end_img(end_img),
+  _img_size(img_size), _inner_size(inner_size), _center(center),  _jpgbuf(0), _num_imgs(num_imgs) {
+
+    _npixels_in = img_size * img_size * 3;
+    _npixels_out = inner_size * inner_size * 3;
+    _jpgbuf = (unsigned char*)malloc(_npixels_in);
+    _inner_pixels = _inner_size * _inner_size;
+    _tgt = (unsigned char *) PyArray_DATA(_pyTgt);
+    _num_cols = PyArray_DIM(_pyTgt, 1);
+    _rseed = time(0);
+}
+
+ImgWorker::~ImgWorker(){
+    free(_jpgbuf);
+}
+
+void init_ImgWorker() {
+    (void) Py_InitModule("_ImgWorker", _ImgWorkerMethods);
     import_array();
 }
 
 PyObject* decodeTransformListMT(PyObject *self, PyObject *args) {
     PyListObject* pyJpegStrings;
     PyArrayObject* pyTarget;
-    int img_size, inner_size, test;
+    int img_size, inner_size, center;
     if (!PyArg_ParseTuple(args, "O!O!iii",
         &PyList_Type, &pyJpegStrings,
         &PyArray_Type, &pyTarget,
         &img_size,
         &inner_size,
-        &test)) {
+        &center)) {
         return NULL;
     }
 
@@ -46,68 +56,39 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args) {
     assert(PyArray_ISONESEGMENT(pyTarget));
     assert(PyArray_CHKFLAGS(pyTarget, NPY_ARRAY_C_CONTIGUOUS));
     assert(PyArray_NDIM(pyTarget)==2);
-
-    // Thread* threads[NUM_JPEG_DECODER_THREADS];
     int num_imgs = PyList_GET_SIZE(pyJpegStrings);
-    decodeImgToArray((PyObject*) pyJpegStrings, pyTarget, 0, 2, img_size, inner_size);
-    // int num_imgs_per_thread = DIVUP(num_imgs, NUM_JPEG_DECODER_THREADS);
-    // Matrix& dstMatrix = *new Matrix(pyTarget);
-    // for (int t = 0; t < NUM_JPEG_DECODER_THREADS; ++t) {
-    //     int start_img = t * num_imgs_per_thread;
-    //     int end_img = min(num_imgs, (t+1) * num_imgs_per_thread);
 
-    //     threads[t] = new DecoderThread((PyObject*)pyJpegStrings, dstMatrix, start_img, end_img, img_size, inner_size, test);
-    //     threads[t]->start();
-    // }
+    ImgWorker iw((PyObject*) pyJpegStrings, pyTarget, 0, 2, img_size, inner_size, center, num_imgs);
+    iw.decodeList();
 
-    // for (int t = 0; t < NUM_JPEG_DECODER_THREADS; ++t) {
-    //     threads[t]->join();
-    //     delete threads[t];
-    // }
-    // assert(dstMatrix.isView());
-    // delete &dstMatrix;
     return Py_BuildValue("i", 0);
 }
 
-// return double(rand_r(&_rseed)) / (int64(RAND_MAX) + 1);
 
-void decodeImgToArray(PyObject *pyJpegStrings, PyArrayObject *pyTarget, int start_img, int end_img, int img_size, int inner_size) {
-    int m = PyArray_DIM(pyTarget, 0);
-    int n = PyArray_DIM(pyTarget, 1);
+void ImgWorker::decodeList() {
+    int m = PyArray_DIM(_pyTgt, 0);
+    int n = PyArray_DIM(_pyTgt, 1);
     int ww, hh;
 
-    int npixels_in = img_size * img_size * 3;
-    int npixels_out = inner_size * inner_size * 3;
-    unsigned char *tgt = (unsigned char *) PyArray_DATA(pyTarget);
-    unsigned char* jpgbuf = (unsigned char*)malloc(npixels_in);
+    // unsigned char* jpgbuf = (unsigned char*)malloc(_npixels_in);
 
-    for (int idx = start_img; idx < end_img; idx++) {
-        PyObject* pySrc = PyList_GET_ITEM(pyJpegStrings, idx);
+    for (int64 idx = _start_img; idx < _end_img; idx++) {
+        PyObject* pySrc = PyList_GET_ITEM(_pyList, idx);
         unsigned char* src = (unsigned char *) PyString_AsString(pySrc);
         size_t src_len = PyString_GET_SIZE(pySrc);
 
-        decodeJpeg(src, src_len, jpgbuf, npixels_in, ww, hh);
-        copy_image_to_column(jpgbuf, npixels_out, tgt, idx, n);
-
-        // cv::Mat imgTmp = cv::imdecode(cv::Mat(1, src_len, CV_8UC1, src), CV_LOAD_IMAGE_COLOR);
-
-        // cv::Rect myROI(img_size-inner_size, img_size - inner_size, inner_size, inner_size);
-        // cv::Rect myROI2(0, inner_size*inner_size, idx, 1);
-
-        // // cv::Mat imgCrop;
-        // imgTmp(myROI).reshape(inner_size*inner_size,1).copyTo(tgtimg(myROI2));
-
-
-        // copy_image_to_column(imgCrop.data, inner_size * inner_size * 3, tgt, idx, n);
+        decodeJpeg(src, src_len, ww, hh);
+        crop(idx, ww, hh, false, -1, -1);
+        // copy_image_to_column(jpgbuf, _npixels_out, tgt, idx, n);
     }
 }
 
-void copy_image_to_column(unsigned char *src, int srclen, unsigned char *tgt, int destcol, int tgtncol) {
-    for (int i=0; i<srclen; i++) {
-        tgt[i*tgtncol + destcol] = src[i];
-    }
-}
-void decodeJpeg(unsigned char* src, size_t src_len, unsigned char* dest, int destsize, int& width, int& height) {
+// void copy_image_to_column(unsigned char *src, int srclen, unsigned char *tgt, int destcol, int tgtncol) {
+//     for (int i=0; i<srclen; i++) {
+//         tgt[i*tgtncol + destcol] = src[i];
+//     }
+// }
+void ImgWorker::decodeJpeg(unsigned char* src, size_t src_len, int& width, int& height) {
     struct jpeg_decompress_struct cinf;
     struct jpeg_error_mgr jerr;
     cinf.err = jpeg_std_error(&jerr);
@@ -120,13 +101,38 @@ void decodeJpeg(unsigned char* src, size_t src_len, unsigned char* dest, int des
     width = cinf.image_width;
     height = cinf.image_height;
 
-    assert(destsize == width * height * 3);
+    assert(_npixels_in >= width * height * 3);
 
     while (cinf.output_scanline < cinf.output_height) {
-        JSAMPROW tmp = &dest[width * cinf.out_color_components * cinf.output_scanline];
+        JSAMPROW tmp = &_jpgbuf[width * cinf.out_color_components * cinf.output_scanline];
         assert(jpeg_read_scanlines(&cinf, &tmp, 1) > 0);
     }
     assert(jpeg_finish_decompress(&cinf));
     jpeg_destroy_decompress(&cinf);
 }
 
+void ImgWorker::crop(int64 i, int64 src_width, int64 src_height, bool flip, int64 crop_start_x, int64 crop_start_y) {
+    const int64 border_size_y = src_height - _inner_size;
+    const int64 border_size_x = src_width - _inner_size;
+    // int64 rr = PyArray_DIM(_pyTgt, 0);
+
+    if (crop_start_x < 0) {
+        crop_start_x = _center ? (border_size_x / 2) : (rand_r(&_rseed) % (border_size_x + 1));
+    }
+    if (crop_start_y < 0) {
+        crop_start_y = _center ? (border_size_y / 2) : (rand_r(&_rseed) % (border_size_y + 1));
+    }
+    const int64 src_pixels = src_width * src_height;
+    for (int64 c = 0; c < 3; ++c) {
+        for (int64 y = crop_start_y; y < crop_start_y + _inner_size; ++y) {
+            for (int64 x = crop_start_x; x < crop_start_x + _inner_size; ++x) {
+                assert((y >= 0 && y < src_height && x >= 0 && x < src_width));
+
+                _tgt[i + _num_cols * (c * _inner_pixels + (y - crop_start_y) * _inner_size
+                                                    + (flip ? (_inner_size - 1 - x + crop_start_x)
+                                                        : (x - crop_start_x)))]
+                        = _jpgbuf[3 * (y * src_width + x) + c];
+            }
+        }
+    }
+}
