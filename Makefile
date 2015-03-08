@@ -9,10 +9,10 @@ BOOST_LIB = /usr/local/lib
 
 NOBOOSTTARGET = test_noboost
 $(NOBOOSTTARGET).so: $(NOBOOSTTARGET).o
-	g++ -shared $(NOBOOSTTARGET).o -L$(PYTHON_DIR)/lib -lpython$(PYTHON_VERSION) -o $(NOBOOSTTARGET).so
+	g++ -shared $(NOBOOSTTARGET).o -L$(PYTHON_DIR)/lib -lpython$(PYTHON_VERSION) -L/usr/local/lib -ljpeg -L/usr/local/cuda/lib `pkg-config opencv --libs` -o $(NOBOOSTTARGET).so
 
 $(NOBOOSTTARGET).o: $(NOBOOSTTARGET).cpp
-	g++ -I$(PYTHON_INCLUDE) -I$(NUMPY_INCLUDE) -fPIC `pkg-config vips-cpp --cflags --libs` -c $(NOBOOSTTARGET).cpp
+	g++ -I$(PYTHON_INCLUDE) -I$(NUMPY_INCLUDE) -I/usr/local/include -fPIC `pkg-config opencv --cflags-only-I` -c $(NOBOOSTTARGET).cpp
 
 
 TARGET = nptest
@@ -22,3 +22,4 @@ $(TARGET).so: $(TARGET).o
 
 $(TARGET).o: $(TARGET).cpp
 	g++ -I$(PYTHON_INCLUDE) -I$(NUMPY_INCLUDE) -I$(BOOST_INC) -fPIC -c $(TARGET).cpp
+# 
