@@ -25,6 +25,7 @@ ImgWorker::ImgWorker(PyObject* pyList, PyArrayObject *pyTarget, int start_img, i
     _jpgbuf = (unsigned char*)malloc(_npixels_in);
     _inner_pixels = _inner_size * _inner_size;
     _tgt = (unsigned char *) PyArray_DATA(_pyTgt);
+    _num_rows = PyArray_DIM(_pyTgt, 0);
     _num_cols = PyArray_DIM(_pyTgt, 1);
     _rseed = time(0);
 }
@@ -58,7 +59,7 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args) {
     assert(PyArray_NDIM(pyTarget)==2);
     int num_imgs = PyList_GET_SIZE(pyJpegStrings);
 
-    ImgWorker iw((PyObject*) pyJpegStrings, pyTarget, 0, 2, img_size, inner_size, center, num_imgs);
+    ImgWorker iw((PyObject*) pyJpegStrings, pyTarget, 0, num_imgs, img_size, inner_size, center, num_imgs);
     iw.decodeList();
 
     return Py_BuildValue("i", 0);
@@ -79,6 +80,7 @@ void ImgWorker::decodeList() {
 
         decodeJpeg(src, src_len, ww, hh);
         crop(idx, ww, hh, false, -1, -1);
+
         // copy_image_to_column(jpgbuf, _npixels_out, tgt, idx, n);
     }
 }
@@ -112,26 +114,22 @@ void ImgWorker::decodeJpeg(unsigned char* src, size_t src_len, int& width, int& 
 }
 
 void ImgWorker::crop(int64 i, int64 src_width, int64 src_height, bool flip, int64 crop_start_x, int64 crop_start_y) {
-    const int64 border_size_y = src_height - _inner_size;
-    const int64 border_size_x = src_width - _inner_size;
-    // int64 rr = PyArray_DIM(_pyTgt, 0);
-
     if (crop_start_x < 0) {
-        crop_start_x = _center ? (border_size_x / 2) : (rand_r(&_rseed) % (border_size_x + 1));
+        const int64 border = src_width - _inner_size;
+        crop_start_x = _center ? (border / 2) : (rand_r(&_rseed) % (border + 1));
     }
     if (crop_start_y < 0) {
-        crop_start_y = _center ? (border_size_y / 2) : (rand_r(&_rseed) % (border_size_y + 1));
+        const int64 border = src_height - _inner_size;
+        crop_start_y = _center ? (border / 2) : (rand_r(&_rseed) % (border + 1));
     }
-    const int64 src_pixels = src_width * src_height;
     for (int64 c = 0; c < 3; ++c) {
         for (int64 y = crop_start_y; y < crop_start_y + _inner_size; ++y) {
             for (int64 x = crop_start_x; x < crop_start_x + _inner_size; ++x) {
                 assert((y >= 0 && y < src_height && x >= 0 && x < src_width));
-
-                _tgt[i + _num_cols * (c * _inner_pixels + (y - crop_start_y) * _inner_size
+                int64 tgtrow = c * _inner_pixels + (y - crop_start_y) * _inner_size
                                                     + (flip ? (_inner_size - 1 - x + crop_start_x)
-                                                        : (x - crop_start_x)))]
-                        = _jpgbuf[3 * (y * src_width + x) + c];
+                                                        : (x - crop_start_x));
+                _tgt[tgtrow * _num_cols + i] = _jpgbuf[3 * (y * src_width + x) + c];
             }
         }
     }
