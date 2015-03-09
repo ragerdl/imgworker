@@ -7,13 +7,12 @@ NUMPY_INCLUDE = $(PYTHON_DIR)/lib/python2.7/site-packages/numpy/core/include/num
 BOOST_INC = /usr/local/include
 BOOST_LIB = /usr/local/lib
 
-NOBOOSTTARGET = test_noboost
-$(NOBOOSTTARGET).so: $(NOBOOSTTARGET).o
-	g++ -shared $(NOBOOSTTARGET).o -L$(PYTHON_DIR)/lib -lpython$(PYTHON_VERSION) -L/usr/local/lib -ljpeg -L/usr/local/cuda/lib `pkg-config opencv --libs` -o $(NOBOOSTTARGET).so
+WBOOSTTARGET = ImgWorker
+$(WBOOSTTARGET).so: $(WBOOSTTARGET).o
+	g++ -shared $(WBOOSTTARGET).o -L$(PYTHON_DIR)/lib -lpython$(PYTHON_VERSION) -L/usr/local/lib -ljpeg -lboost_thread-mt  -lboost_system-mt -o $(WBOOSTTARGET).so
 
-$(NOBOOSTTARGET).o: $(NOBOOSTTARGET).cpp
-	g++ -I$(PYTHON_INCLUDE) -I$(NUMPY_INCLUDE) -I/usr/local/include -fPIC `pkg-config opencv --cflags-only-I` -c $(NOBOOSTTARGET).cpp
-
+$(WBOOSTTARGET).o: $(WBOOSTTARGET).cpp
+	g++ -I$(PYTHON_INCLUDE) -I$(NUMPY_INCLUDE) -I/usr/local/include -fPIC -c $(WBOOSTTARGET).cpp
 
 TARGET = nptest
 #-Wl,--export-dynamic

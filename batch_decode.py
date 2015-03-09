@@ -20,7 +20,7 @@ startimg = 0
 num_imgs = 256
 unpacked = np.zeros((innerpixels, num_imgs), dtype=np.uint8)
 a = time.time()
-libmodel.decodeTransformListMT(jpeglist[startimg:startimg+num_imgs], unpacked, imgsize, innersize, False)
+libmodel.decodeTransformListMT(jpeglist[startimg:startimg+num_imgs], unpacked, imgsize, innersize, False, 6)
 print time.time() - a
 import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
