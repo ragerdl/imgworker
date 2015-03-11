@@ -36,7 +36,6 @@ endif()
 set(BOOST_INCLUDEDIR "/usr/local/include")
 set(BOOST_LIBRARYDIR "/usr/local/lib")
 find_package(Boost REQUIRED COMPONENTS thread system)
-message("These are your boost include dirs:\n${Boost_INCLUDE_DIRS}, ${Boost_LIBRARY_DIRS}")
 
 include_directories(
   ${PYTHON_INCLUDE_DIRS}
@@ -52,13 +51,13 @@ include_directories ("${PROJECT_SOURCE_DIR}")
 
 add_library(ImgWorker SHARED imgworker.cpp)
 set_target_properties(ImgWorker PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
-
+set_target_properties(ImgWorker PROPERTIES PREFIX "_")
 target_link_libraries(ImgWorker
   ${PYTHON_LIBRARIES}
   ${JPEG_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 
-message("This is the target var ${CMAKE_C_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_RELEASE}")
+message("This is the target var ${TARGET} ${CMAKE_CXX_FLAGS_RELEASE}")
 install(TARGETS RUNTIME DESTINATION ${PROJECT_SOURCE_DIR})
 #execute_process(COMMAND ln -sf ${PROJECT_BUILD_DIR}/${TARGET} ${PROJECT_SOURCE_DIR}/_ImgWorker.so)

@@ -1,6 +1,7 @@
 import cPickle
 import numpy as np
 import time as time
+import os
 from PIL import Image
 from StringIO import StringIO
 
@@ -25,10 +26,9 @@ def my_unpickle(filename):
     fo.close()
     return contents
 
-
 libmodel = __import__('_ImgWorker')
-# fname = '/Users/alexpark/Data/training_batch_0.0'
-fname = '/usr/local/data/I1K/macro_batches_256/training_batch_0/training_batch_0.0'
+PATH = '/usr/local/data/I1K/macro_batches_256/training_batch_0/'
+fname = os.path.join(PATH, 'training_batch_0.0')
 tdata = my_unpickle(fname)
 jpeglist = tdata['data']
 print len(jpeglist)
@@ -38,19 +38,24 @@ innerpixels = innersize*innersize*3
 startimg = 0
 num_imgs = 1024
 unpacked = np.zeros((num_imgs, innerpixels), dtype=np.uint8)
-# unpacked32 = np.zeros((num_imgs, innerpixels), dtype=np.float32)
 
-# a = time.time()
-# jpeg_decoder(unpacked32, jpeglist[startimg:startimg+num_imgs], imgsize-innersize, innersize)
-# print "Python version: ", time.time() - a
+t1 = time.time()
+libmodel.decodeTransformListMT(jpglist=jpeglist[startimg:startimg+num_imgs],
+							   tgt=unpacked, orig_size=imgsize,
+							   crop_size=innersize, center=False,
+							   rgb=True, flip=False, nthreads=5,
+							   calcmean=False)
+print("C Module version decode time: ", time.time() - t1)
 
-a = time.time()
-# libmodel.decodeTransformListMT(jpeglist[startimg:startimg+num_imgs], unpacked, imgsize, innersize, False, True, 5)
-# {"jpglist", "tgt", "orig_size", "crop_size", "center", "rgb", "nthreads", NULL};
-libmodel.decodeTransformListMT(jpglist=jpeglist[startimg:startimg+num_imgs], tgt=unpacked, orig_size=imgsize, crop_size=innersize, center=False, rgb=True, nthreads=5)
-print "C Module version: ", time.time() - a
+unpackedM = np.zeros((imgsize, imgsize, 3), dtype=np.uint8)
 
+libmodel.decodeTransformListMT(jpglist=jpeglist[startimg:startimg+num_imgs],
+							   tgt=unpackedM, orig_size=imgsize,
+							   crop_size=innersize,
+							   calcmean=True)
 
-data = unpacked[5,:].reshape((3, innersize, innersize)).transpose(1,2,0)[:,:,[0,1,2]]
+# Now save out an image from the packed array to confirm things are working
+data = unpacked[5,:].reshape(
+					(3, innersize, innersize)).transpose(1,2,0)[:,:,[0,1,2]]
 im = Image.fromarray(data)
 im.save('out.png')
