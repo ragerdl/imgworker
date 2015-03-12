@@ -3,7 +3,9 @@
 # ----------------------------------------------------------------------------
 
 import numpy as np
-iw = __import__('imgworker._ImgWorker')
+# from imgworker._ImgWorker import decodeTransformListMT
+iw = __import__('_ImgWorker')
+# import imgworker
 
 def check_tgt(tgt, otype, oshape):
     assert tgt.dtype == otype, "tgt dtype is incorrect {} vs {}".format(

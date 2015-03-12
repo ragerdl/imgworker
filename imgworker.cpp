@@ -8,6 +8,8 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 #include <assert.h>
+#include <cstdio>
+#include <stdexcept>
 #include "imgworker.h"
 
 extern "C" void init_ImgWorker();
@@ -21,6 +23,11 @@ static PyMethodDef _ImgWorkerMethods[] = {
                                METH_VARARGS | METH_KEYWORDS, NULL},
     { NULL, NULL }};
 
+static void handleLibJpegFatalError(j_common_ptr cinfo)
+{
+    (*cinfo->err->output_message)(cinfo);
+    throw std::runtime_error("error in libjpeg, check stderr");
+}
 
 PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
                                 PyObject *keywds) {
@@ -43,9 +50,21 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
         &img_size, &inner_size, &center, &flip, &rgb, &nthreads, &calcMean)) {
         return NULL;
     }
-    assert(pyTarget != NULL);
-    assert(PyArray_ISONESEGMENT(pyTarget));
-    assert(PyArray_CHKFLAGS(pyTarget, NPY_ARRAY_C_CONTIGUOUS));
+
+    try {
+        if (pyTarget == NULL)
+            throw std::runtime_error("tgt not allocated");
+
+        if (!PyArray_ISONESEGMENT(pyTarget))
+            throw std::runtime_error("tgt not contiguous");
+
+        if (!PyArray_CHKFLAGS(pyTarget, NPY_ARRAY_C_CONTIGUOUS))
+            throw std::runtime_error("tgt not contiguous");
+    } catch (std::runtime_error &e) {
+        std::cerr << "Target Error: " << e.what() << std::endl;
+    }
+
+
     int num_imgs = PyList_GET_SIZE(pyJpegStrings);
     if (num_imgs < nthreads) {
         nthreads = 1;
@@ -81,12 +100,8 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
                 tot_sum[i] += workers[t]->_jpgbuf[i] * workers[t]->_bsize;
             }
         }
-        printf("Total num imgs = %d\n", tot_bsize);
         for (int64 i = 0; i < wp->_npixels_in; i++) {
             tgt[i] = tot_sum[i] / tot_bsize;
-            if (i<10) {
-                printf("\ttgt val = %c sum val = %d\n", tgt[i], tot_sum[i]);
-            }
         }
         delete[] tot_sum;
     }
@@ -166,25 +181,31 @@ void ImgWorker::decodeJpeg(unsigned char* src, size_t src_len,
                            int& width, int& height) {
     struct jpeg_decompress_struct cinf;
     struct jpeg_error_mgr jerr;
-    cinf.err = jpeg_std_error(&jerr);
-    jpeg_create_decompress(&cinf);
-    jpeg_mem_src(&cinf, src, src_len);
-    assert(jpeg_read_header(&cinf, TRUE));
-    cinf.out_color_space = _wp->_rgb ? JCS_RGB : JCS_GRAYSCALE;
-    assert(jpeg_start_decompress(&cinf));
-    assert(cinf.num_components == 3 || cinf.num_components == 1);
-    width = cinf.image_width;
-    height = cinf.image_height;
+    try {
+        cinf.err = jpeg_std_error(&jerr);
+        jerr.error_exit = handleLibJpegFatalError;
+        jpeg_create_decompress(&cinf);
+        jpeg_mem_src(&cinf, src, src_len);
+        jpeg_read_header(&cinf, TRUE);
+        cinf.out_color_space = _wp->_rgb ? JCS_RGB : JCS_GRAYSCALE;
+        jpeg_start_decompress(&cinf);
+        width = cinf.image_width;
+        height = cinf.image_height;
 
-    assert(_npixels_in >= width * height * _wp->_channels);
+        if (_npixels_in < width * height * _wp->_channels)
+            throw std::runtime_error("Decoded image too large");
 
-    while (cinf.output_scanline < cinf.output_height) {
-        int lw = width * cinf.out_color_components * cinf.output_scanline;
-        JSAMPROW tmp = &_jpgbuf[lw];
-        assert(jpeg_read_scanlines(&cinf, &tmp, 1) > 0);
+        while (cinf.output_scanline < cinf.output_height) {
+            int lw = width * cinf.out_color_components * cinf.output_scanline;
+            JSAMPROW tmp = &_jpgbuf[lw];
+            jpeg_read_scanlines(&cinf, &tmp, 1);
+        }
+        jpeg_finish_decompress(&cinf);
+        jpeg_destroy_decompress(&cinf);
+    } catch(...) {
+        std::cerr << "Error decoding jpeg\n";
+        exit(-1);
     }
-    assert(jpeg_finish_decompress(&cinf));
-    jpeg_destroy_decompress(&cinf);
 }
 
 void ImgWorker::crop_and_copy(int64 i, int64 src_w, int64 src_h, bool flip,

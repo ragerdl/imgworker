@@ -19,9 +19,9 @@ class WorkerParams {
  public:
     PyObject* _pyList;
     PyArrayObject* _pyTgt;
-    int64 _num_imgs, _num_cols, _num_rows;
     int64 _img_size, _inner_size, _npixels_in, _npixels_out, _inner_pixels;
     bool _center, _flip, _rgb;
+    int64 _num_imgs, _num_cols, _num_rows;
     unsigned int _channels;
 
     WorkerParams(PyObject* pyList, PyArrayObject *pyTarget, int img_size,

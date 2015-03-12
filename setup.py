@@ -38,7 +38,7 @@ incdirs = ['/usr/include', '/usr/local/include', pyincdir, npyincdir]
 os.environ['BASECFLAGS'] = '-fPIC'
 os.environ['OPT'] = '-O3'
 
-iw_ext = Extension('imgworker._ImgWorker', sources=['imgworker.cpp'],
+iw_ext = Extension('_ImgWorker', sources=['imgworker.cpp'],
                    include_dirs=incdirs, library_dirs=libdirs, libraries=libs)
 
 # install_requires = ['numpy', ]
