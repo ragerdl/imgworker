@@ -1,2 +1,5 @@
-from imgworker import *
+# ----------------------------------------------------------------------------
+# Copyright 2015 Nervana Systems Inc.  All rights reserved.
+# ----------------------------------------------------------------------------
 
+from imgworker import *

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # ----------------------------------------------------------------------------
-# Copyright 2014 Nervana Systems Inc.  All rights reserved.
+# Copyright 2015 Nervana Systems Inc.  All rights reserved.
 # ----------------------------------------------------------------------------
 # automatic resource extraction
 # https://docs.python.org/2/distutils/apiref.html
@@ -13,8 +13,8 @@ import sys
 
 # Libraries needed for extension
 libs = ["python{}.{}".format(sys.version_info.major, sys.version_info.minor),
-        'boost_thread',
-        'boost_system',
+        'boost_thread-mt' if sys.platform == "darwin" else 'boost_thread',
+        'boost_system-mt' if sys.platform == "darwin" else 'boost_system',
         'jpeg']
 
 # Library directories to find the above
@@ -45,7 +45,7 @@ iw_ext = Extension('imgworker._ImgWorker', sources=['imgworker.cpp'],
 install_requires = [ ]
 test_requires = ['nose', ]
 
-with open('README') as file:
+with open('README.md') as file:
     long_desc = file.read()
 
 setup(name="imgworker",

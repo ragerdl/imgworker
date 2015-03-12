@@ -1,3 +1,7 @@
+# ----------------------------------------------------------------------------
+# Copyright 2015 Nervana Systems Inc.  All rights reserved.
+# ----------------------------------------------------------------------------
+
 import numpy as np
 # import os.path as op
 # pkgpath=op.dirname(op.realpath(__file__))
