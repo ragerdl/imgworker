@@ -11,10 +11,8 @@ def decode_list(jpglist, tgt, orig_size, crop_size,
     if tgt is None:
         tgt = np.zeros(out_shape, dtype=np.uint8)
     else:
-        assert tgt.dtype == np.uint8,
-               "tgt dtype is not uint8 ({})".format(tgt.dtype)
-        assert tgt.shape == out_shape,
-               "tgt shape is incorrect {} vs {}".format(tgt.shape, out_shape)
+        assert tgt.dtype == np.uint8, "tgt dtype is not uint8 ({})".format(tgt.dtype)
+        assert tgt.shape == out_shape, "tgt shape is incorrect {} vs {}".format(tgt.shape, out_shape)
 
     iw.decodeTransformListMT(jpglist=jpglist, tgt=tgt, orig_size=orig_size,
                              crop_size=crop_size, center=center, rgb=rgb,
@@ -29,10 +27,8 @@ def calc_batch_mean(jpglist, tgt, orig_size, rgb=True, nthreads=5):
     if tgt is None:
         tgt = np.zeros(out_shape, dtype=np.uint8)
     else:
-        assert tgt.dtype == np.uint8,
-               "tgt dtype is not uint8 ({})".format(tgt.dtype)
-        assert tgt.shape == out_shape,
-               "tgt shape is incorrect {} vs {}".format(tgt.shape, out_shape)
+        assert tgt.dtype == np.uint8, "tgt dtype is not uint8 ({})".format(tgt.dtype)
+        assert tgt.shape == out_shape, "tgt shape is incorrect {} vs {}".format(tgt.shape, out_shape)
 
     iw.decodeTransformListMT(jpglist=jpglist, tgt=tgt, orig_size=orig_size,
                              crop_size=orig_size, center=True, rgb=rgb,

@@ -46,7 +46,7 @@ include_directories(
 )
 
 
-
+set(FINALIZE_DIR "/home/users/alex")
 include_directories ("${PROJECT_SOURCE_DIR}")
 
 add_library(ImgWorker SHARED imgworker.cpp)
@@ -57,7 +57,5 @@ target_link_libraries(ImgWorker
   ${JPEG_LIBRARIES}
   ${Boost_LIBRARIES}
 )
-
-message("This is the target var ${TARGET} ${CMAKE_CXX_FLAGS_RELEASE}")
-install(TARGETS RUNTIME DESTINATION ${PROJECT_SOURCE_DIR})
-#execute_process(COMMAND ln -sf ${PROJECT_BUILD_DIR}/${TARGET} ${PROJECT_SOURCE_DIR}/_ImgWorker.so)
+message("SDIR:  sourcedir: ${PROJECT_SOURCE_DIR} builddir: ${PROJECT_BINARY_DIR}")
+install(TARGETS ImgWorker LIBRARY DESTINATION ${FINALIZE_DIR})
