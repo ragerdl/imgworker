@@ -1,6 +1,8 @@
 import numpy as np
-iw = __import__('_ImgWorker')
-
+# import os.path as op
+# pkgpath=op.dirname(op.realpath(__file__))
+# iw = __import__(op.join(pkgpath, '_ImgWorker'))
+iw = __import__('imgworker._ImgWorker')
 
 def check_tgt(tgt, otype, oshape):
     assert tgt.dtype == otype, "tgt dtype is incorrect {} vs {}".format(

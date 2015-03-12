@@ -41,6 +41,9 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
     assert(PyArray_ISONESEGMENT(pyTarget));
     assert(PyArray_CHKFLAGS(pyTarget, NPY_ARRAY_C_CONTIGUOUS));
     int num_imgs = PyList_GET_SIZE(pyJpegStrings);
+    if (num_imgs < nthreads) {
+        nthreads = 1;
+    }
     int num_imgs_per_thread = (num_imgs + nthreads - 1) / nthreads;
 
     WorkerParams *wp = new WorkerParams(

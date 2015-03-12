@@ -41,7 +41,8 @@ os.environ['OPT'] = '-O3'
 iw_ext = Extension('imgworker._ImgWorker', sources=['imgworker.cpp'],
                    include_dirs=incdirs, library_dirs=libdirs, libraries=libs)
 
-install_requires = ['numpy', ]
+# install_requires = ['numpy', ]
+install_requires = [ ]
 test_requires = ['nose', ]
 
 with open('README') as file:
