@@ -12,7 +12,7 @@ boost::thread_group g;
 
 static PyMethodDef _ImgWorkerMethods[] = {
     { "decodeTransformListMT", (PyCFunction) decodeTransformListMT,
-                               METH_VARARGS | METH_KEYWORDS, dDocString},
+                               METH_VARARGS | METH_KEYWORDS, NULL},
     { NULL, NULL }};
 
 
