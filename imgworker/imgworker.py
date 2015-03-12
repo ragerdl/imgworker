@@ -3,9 +3,6 @@
 # ----------------------------------------------------------------------------
 
 import numpy as np
-# import os.path as op
-# pkgpath=op.dirname(op.realpath(__file__))
-# iw = __import__(op.join(pkgpath, '_ImgWorker'))
 iw = __import__('imgworker._ImgWorker')
 
 def check_tgt(tgt, otype, oshape):
