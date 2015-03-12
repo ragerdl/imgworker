@@ -13,7 +13,7 @@ def check_tgt(tgt, otype, oshape):
 
 
 def decode_list(jpglist, tgt, orig_size, crop_size,
-                center=False, rgb=True, flip=False, nthreads=5):
+                center=False, flip=False, rgb=True, nthreads=5):
 
     channels = 3 if rgb else 1
     out_shape = (len(jpglist), channels * crop_size * crop_size)
@@ -24,8 +24,8 @@ def decode_list(jpglist, tgt, orig_size, crop_size,
         check_tgt(tgt, np.uint8, out_shape)
 
     iw.decodeTransformListMT(jpglist=jpglist, tgt=tgt, orig_size=orig_size,
-                             crop_size=crop_size, center=center, rgb=rgb,
-                             flip=flip, nthreads=nthreads, calcmean=False)
+                             crop_size=crop_size, center=center, flip=flip, 
+                             rgb=rgb, nthreads=nthreads, calcmean=False)
 
     return tgt
 
@@ -40,5 +40,5 @@ def calc_batch_mean(jpglist, tgt, orig_size, rgb=True, nthreads=5):
         check_tgt(tgt, np.uint8, out_shape)
 
     iw.decodeTransformListMT(jpglist=jpglist, tgt=tgt, orig_size=orig_size,
-                             crop_size=orig_size, center=True, rgb=rgb,
-                             flip=False, nthreads=nthreads, calcmean=True)
+                             crop_size=orig_size, center=True, flip=False,
+                             rgb=rgb, nthreads=nthreads, calcmean=True)

@@ -25,7 +25,7 @@ class WorkerParams {
     unsigned int _channels;
 
     WorkerParams(PyObject* pyList, PyArrayObject *pyTarget, int img_size,
-                 int inner_size, bool center, bool rgb, bool flip,
+                 int inner_size, bool center, bool flip, bool rgb,
                  int num_imgs);
     virtual ~WorkerParams();
 

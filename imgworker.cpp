@@ -54,7 +54,7 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
 
     WorkerParams *wp = new WorkerParams(
         (PyObject*) pyJpegStrings, pyTarget, img_size, inner_size,
-        center, rgb, flip, num_imgs);
+        center, flip, rgb, num_imgs);
 
     ImgWorker *workers[nthreads];
 
@@ -99,7 +99,7 @@ PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
 
 WorkerParams::WorkerParams(PyObject* pyList, PyArrayObject *pyTarget,
                            int img_size, int inner_size, bool center,
-                           bool rgb, bool flip, int num_imgs)
+                           bool flip, bool rgb, int num_imgs)
     : _pyList(pyList), _pyTgt(pyTarget), _img_size(img_size),
       _inner_size(inner_size), _center(center), _flip(flip), _rgb(rgb),
       _num_imgs(num_imgs) {
