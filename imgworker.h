@@ -1,3 +1,9 @@
+/*
+ * ---------------------------------------------------------------------------
+ * Copyright 2015 Nervana Systems Inc.  All rights reserved.
+ * ---------------------------------------------------------------------------
+ */
+
 #include <cstdio>
 #include <cstdlib>
 #include <Python.h>

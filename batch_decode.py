@@ -1,24 +1,13 @@
+# ----------------------------------------------------------------------------
+# Copyright 2015 Nervana Systems Inc.  All rights reserved.
+# ----------------------------------------------------------------------------
+
 import cPickle
 import numpy as np
 import time as time
 import os
 from PIL import Image
 from StringIO import StringIO
-
-# def jpeg_decoder(inputs, jpeg_strings, diff_size, crop_size):
-#     for i, jpeg_string in enumerate(jpeg_strings):
-#         img = Image.open(StringIO(jpeg_string))
-#         csx = np.random.randint(0, diff_size)
-#         csy = np.random.randint(0, diff_size)
-#             # horizontal reflections of the image
-#         flip_horizontal = np.random.randint(0, 2)
-#         if flip_horizontal == 1:
-#             img = img.transpose(Image.FLIP_LEFT_RIGHT)
-#         img = img.crop((csx, csy, csx + crop_size, csy + crop_size))
-#         if (img.mode != 'RGB'):
-#             img = img.convert('RGB')
-#         inputs[i, :] = (np.array(img, dtype=np.float32)).reshape((-1))
-
 
 def my_unpickle(filename):
     fo = open(filename, 'r')
