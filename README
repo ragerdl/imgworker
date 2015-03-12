@@ -1,7 +1,10 @@
-For Docstring
-
 Multithreaded decoding and transforms of jpg strings
 
+The extension module _ImWorker.so provides a method:
+
+decodeTransformListMT(jpglist=jpglist, tgt=tgt, orig_size=orig_size,
+                      crop_size=crop_size, center=center, rgb=rgb,
+                      flip=flip, nthreads=nthreads, calcmean=docalcmean)
 Parameters
 ----------
 

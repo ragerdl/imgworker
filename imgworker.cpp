@@ -5,17 +5,19 @@
 #include "imgworker.h"
 
 extern "C" void init_ImgWorker();
-PyObject* decodeTransformListMT(PyObject *self, PyObject *args, PyObject *keywds);
+PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
+                                PyObject *keywds);
 
 boost::thread_group g;
-const char *dDocString = "\nMultithreaded decoding and transforms of jpg strings\n";
 
 static PyMethodDef _ImgWorkerMethods[] = {
-    { "decodeTransformListMT", (PyCFunction) decodeTransformListMT, METH_VARARGS|METH_KEYWORDS, dDocString},
+    { "decodeTransformListMT", (PyCFunction) decodeTransformListMT,
+                               METH_VARARGS | METH_KEYWORDS, dDocString},
     { NULL, NULL }};
 
 
-PyObject* decodeTransformListMT(PyObject *self, PyObject *args, PyObject *keywds) {
+PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
+                                PyObject *keywds) {
     PyListObject* pyJpegStrings;
     PyArrayObject* pyTarget;
     int img_size, inner_size;
@@ -168,7 +170,8 @@ void ImgWorker::decodeJpeg(unsigned char* src, size_t src_len,
     assert(_npixels_in >= width * height * _wp->_channels);
 
     while (cinf.output_scanline < cinf.output_height) {
-        JSAMPROW tmp = &_jpgbuf[width * cinf.out_color_components * cinf.output_scanline];
+        int lw = width * cinf.out_color_components * cinf.output_scanline;
+        JSAMPROW tmp = &_jpgbuf[lw];
         assert(jpeg_read_scanlines(&cinf, &tmp, 1) > 0);
     }
     assert(jpeg_finish_decompress(&cinf));
@@ -195,7 +198,7 @@ void ImgWorker::crop_and_copy(int64 i, int64 src_w, int64 src_h, bool flip,
             for (int64 x = crop_start_x; x < crop_start_x + insz; ++x) {
                 assert((y >= 0 && y < src_h && x >= 0 && x < src_w));
                 int64 tgtrow = c * _wp->_inner_pixels +
-                               (y - crop_start_y) * insz + 
+                               (y - crop_start_y) * insz +
                                (flip ? (insz - 1 - x + crop_start_x)
                                      : (x - crop_start_x));
                 _tgt[i * cols + tgtrow] = _jpgbuf[chan * (y * src_w + x) + c];

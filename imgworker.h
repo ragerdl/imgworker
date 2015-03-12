@@ -18,7 +18,9 @@ class WorkerParams {
     bool _center, _flip, _rgb;
     unsigned int _channels;
 
-    WorkerParams(PyObject* pyList, PyArrayObject *pyTarget, int img_size, int inner_size, bool center, bool rgb, bool flip, int num_imgs);
+    WorkerParams(PyObject* pyList, PyArrayObject *pyTarget, int img_size,
+                 int inner_size, bool center, bool rgb, bool flip,
+                 int num_imgs);
     virtual ~WorkerParams();
 
 };
@@ -30,8 +32,11 @@ class ImgWorker {
     unsigned char* _tgt;
     unsigned int _rseed;
 
-    void decodeJpeg(unsigned char* src, size_t src_len, int& width, int& height);
-    void crop_and_copy(int64 i, int64 src_width, int64 src_height, bool flip, int64 crop_start_x, int64 crop_start_y);
+    void decodeJpeg(unsigned char* src, size_t src_len,
+                    int& width, int& height);
+
+    void crop_and_copy(int64 i, int64 src_width, int64 src_height, bool flip,
+                       int64 crop_start_x, int64 crop_start_y);
  public:
     ImgWorker(WorkerParams *wp, int start_img, int end_img);
     ~ImgWorker();
