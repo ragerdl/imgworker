@@ -21,6 +21,11 @@ libs = ["python{}.{}".format(sys.version_info.major, sys.version_info.minor),
 pylibdir = dsc.get_python_lib(plat_specific=1)
 libdirs = [pylibdir, '/usr/local/lib']
 
+# Hack to make sure it finds the right libpython with homebrew
+if pylibdir.find('Cellar') > 0:
+    brewpylibdir = os.path.join('/', *pylibdir.split('/')[:-2])
+    libdirs.append(brewpylibdir)
+
 # Include directories needed by .cpp files in extension
 pyincdir  = dsc.get_python_inc(plat_specific=1)
 try:
