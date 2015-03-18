@@ -25,7 +25,7 @@ static PyMethodDef _ImgWorkerMethods[] = {
 
 static void handleLibJpegFatalError(j_common_ptr cinfo)
 {
-    (*cinfo->err->output_message)(cinfo);
+    // (*cinfo->err->output_message)(cinfo);
     throw std::runtime_error("error in libjpeg, check stderr");
 }
 
@@ -203,8 +203,7 @@ void ImgWorker::decodeJpeg(unsigned char* src, size_t src_len,
         jpeg_finish_decompress(&cinf);
         jpeg_destroy_decompress(&cinf);
     } catch(...) {
-        std::cerr << "Error decoding jpeg\n";
-        exit(-1);
+        // std::cerr << "Error decoding jpeg\n";
     }
 }
 
