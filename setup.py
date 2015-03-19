@@ -54,7 +54,7 @@ with open('README.md') as file:
     long_desc = file.read()
 
 setup(name="imgworker",
-      version="0.1.0",
+      version="0.2.0",
       description="Provides a set of functions for fast jpeg decoding "
                   "and accumulation for image statistics",
       ext_modules = [iw_ext],
