@@ -26,7 +26,7 @@ if sys.version[:3] == '3.4':
 libs = [pylib, thrlib, syslib, 'jpeg']
 
 # Library directories to find the above
-pylibdir = dsc.get_python_lib(plat_specific=1)
+pylibdir = dsc.get_python_lib()
 libdirs = [pylibdir, '/usr/local/lib']
 
 # Hack to make sure it finds the right libpython with homebrew
