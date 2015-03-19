@@ -27,7 +27,7 @@ libs = [pylib, thrlib, syslib, 'jpeg']
 
 pyincdir  = dsc.get_python_inc(plat_specific=1)
 
-pylibdir = os.path.join('/', *pincdir.split('/')[:-2] + ['lib'])
+pylibdir = os.path.join('/', *pyincdir.split('/')[:-2] + ['lib'])
 
 # Library directories to find the above
 # pylibdir = dsc.get_python_lib()
@@ -66,7 +66,7 @@ with open('README.md') as file:
     long_desc = file.read()
 
 setup(name="imgworker",
-      version="0.2.0",
+      version="0.2.1",
       description="Provides a set of functions for fast jpeg decoding "
                   "and accumulation for image statistics",
       ext_modules = [iw_ext],
