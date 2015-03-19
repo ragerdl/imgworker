@@ -12,6 +12,22 @@
 #include <stdexcept>
 #include "imgworker.h"
 
+#if PY_MAJOR_VERSION >= 3
+#define IS_PY3K
+#endif
+
+
+struct module_state {
+    PyObject *error;
+};
+
+#ifdef IS_PY3K
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct module_state _state;
+#endif
+
 extern "C" void init_ImgWorker();
 PyObject* decodeTransformListMT(PyObject *self, PyObject *args,
                                 PyObject *keywds);
@@ -22,6 +38,66 @@ static PyMethodDef _ImgWorkerMethods[] = {
     { "decodeTransformListMT", (PyCFunction) decodeTransformListMT,
                                METH_VARARGS | METH_KEYWORDS, NULL},
     { NULL, NULL }};
+
+#ifdef IS_PY3K
+
+static int _ImgWorker_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+}
+
+static int _ImgWorker_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+
+
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "_ImgWorker",
+        NULL,
+        sizeof(struct module_state),
+        _ImgWorkerMethods,
+        NULL,
+        _ImgWorker_traverse,
+        _ImgWorker_clear,
+        NULL
+};
+
+#define INITERROR return NULL
+
+PyObject *
+PyInit__ImgWorker(void)
+
+#else
+#define INITERROR return
+
+void
+init_ImgWorker(void)
+#endif
+{
+#ifdef IS_PY3K
+    PyObject *module = PyModule_Create(&moduledef);
+#else
+    PyObject *module = Py_InitModule("_ImgWorker", _ImgWorkerMethods);
+#endif
+    import_array();
+    if (module == NULL)
+        INITERROR;
+    struct module_state *st = GETSTATE(module);
+    char errexcept[] = "_ImgWorker.Error";
+    st->error = PyErr_NewException(errexcept, NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+
+#ifdef IS_PY3K
+    return module;
+#endif
+}
+
+
 
 static void handleLibJpegFatalError(j_common_ptr cinfo)
 {
@@ -143,18 +219,18 @@ ImgWorker::~ImgWorker(){
     delete[] _jpgbuf;
 }
 
-void init_ImgWorker() {
-    (void) Py_InitModule("_ImgWorker", _ImgWorkerMethods);
-    import_array();
-}
-
 void ImgWorker::accumVals() {
     int ww, hh;
     int *accum = new int[_npixels_in]();
     for (int64 idx = _start_img; idx < _end_img; idx++) {
         PyObject* pySrc = PyList_GET_ITEM(_wp->_pyList, idx);
+#ifdef IS_PY3K
+        unsigned char* src = (unsigned char *) PyByteArray_AsString(pySrc);
+        size_t src_len = PyByteArray_GET_SIZE(pySrc);
+#else
         unsigned char* src = (unsigned char *) PyString_AsString(pySrc);
         size_t src_len = PyString_GET_SIZE(pySrc);
+#endif
         decodeJpeg(src, src_len, ww, hh);
         for (int64 i = 0; i < _npixels_in; i++) {
             accum[i] += _jpgbuf[i];
@@ -170,8 +246,13 @@ void ImgWorker::decodeList() {
     int ww, hh;
     for (int64 idx = _start_img; idx < _end_img; idx++) {
         PyObject* pySrc = PyList_GET_ITEM(_wp->_pyList, idx);
+#ifdef IS_PY3K
+        unsigned char* src = (unsigned char *) PyByteArray_AsString(pySrc);
+        size_t src_len = PyByteArray_GET_SIZE(pySrc);
+#else
         unsigned char* src = (unsigned char *) PyString_AsString(pySrc);
         size_t src_len = PyString_GET_SIZE(pySrc);
+#endif
         decodeJpeg(src, src_len, ww, hh);
         crop_and_copy(idx, ww, hh, _wp->_flip, -1, -1);
     }
