@@ -20,8 +20,10 @@ thrlib = os.path.splitext(os.path.basename(thrlib[0]))[0][3:]
 syslib = os.path.splitext(os.path.basename(syslib[0]))[0][3:]
 
 # Libraries needed for extension
-libs = ["python{}.{}".format(sys.version_info.major, sys.version_info.minor),
-        thrlib, syslib, 'jpeg']
+pylib = "python{}".format(sys.version[:3])
+if sys.version[:3] == '3.4':
+    pylib += 'm'
+libs = [pylib, thrlib, syslib, 'jpeg']
 
 # Library directories to find the above
 pylibdir = dsc.get_python_lib(plat_specific=1)
