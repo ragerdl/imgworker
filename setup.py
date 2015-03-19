@@ -14,10 +14,8 @@ from glob import glob
 
 # Need boost thread and system
 lpaths = ['/usr/local/lib', '/usr/lib']
-thrlib = glob(lpaths[0] + '/libboost_thread*') +
-           glob(lpaths[1] + '/libboost_thread*')
-syslib = glob(lpaths[0] + '/libboost_system*') +
-           glob(lpaths[1] + '/libboost_system*')
+thrlib = glob(lpaths[0] + '/libboost_thread*') + glob(lpaths[1] + '/libboost_thread*')
+syslib = glob(lpaths[0] + '/libboost_system*') + glob(lpaths[1] + '/libboost_system*')
 thrlib = os.path.splitext(os.path.basename(thrlib[0]))[0][3:]
 syslib = os.path.splitext(os.path.basename(syslib[0]))[0][3:]
 
