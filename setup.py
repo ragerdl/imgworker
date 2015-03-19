@@ -25,18 +25,21 @@ if sys.version[:3] == '3.4':
     pylib += 'm'
 libs = [pylib, thrlib, syslib, 'jpeg']
 
+pyincdir  = dsc.get_python_inc(plat_specific=1)
+
+pylibdir = os.path.join('/', *pincdir.split('/')[:-2] + ['lib'])
+
 # Library directories to find the above
-pylibdir = dsc.get_python_lib()
+# pylibdir = dsc.get_python_lib()
 libdirs = [pylibdir, '/usr/local/lib']
 
 # Hack to make sure it finds the right libpython with homebrew
-print("THIS IS PYLIBDIR", pylibdir)
-if pylibdir.find('Cellar') > 0:
-    brewpylibdir = os.path.join('/', *pylibdir.split('/')[:-2])
-    libdirs.append(brewpylibdir)
+
+# if pylibdir.find('Cellar') > 0:
+#     brewpylibdir = os.path.join('/', *pylibdir.split('/')[:-2])
+#     libdirs.append(brewpylibdir)
 
 # Include directories needed by .cpp files in extension
-pyincdir  = dsc.get_python_inc(plat_specific=1)
 try:
     import numpy as np
     npyincdir = np.get_include()
