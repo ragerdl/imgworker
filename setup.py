@@ -30,6 +30,7 @@ pylibdir = dsc.get_python_lib(plat_specific=1)
 libdirs = [pylibdir, '/usr/local/lib']
 
 # Hack to make sure it finds the right libpython with homebrew
+print("THIS IS PYLIBDIR", pylibdir)
 if pylibdir.find('Cellar') > 0:
     brewpylibdir = os.path.join('/', *pylibdir.split('/')[:-2])
     libdirs.append(brewpylibdir)
