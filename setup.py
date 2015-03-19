@@ -10,12 +10,20 @@ from setuptools import setup, find_packages
 from setuptools.command.build_ext import build_ext
 from setuptools import Extension
 import sys
+from glob import glob
+
+# Need boost thread and system
+lpaths = ['/usr/local/lib', '/usr/lib']
+thrlib = glob(lpaths[0] + '/libboost_thread*') +
+           glob(lpaths[1] + '/libboost_thread*')
+syslib = glob(lpaths[0] + '/libboost_system*') +
+           glob(lpaths[1] + '/libboost_system*')
+thrlib = os.path.splitext(os.path.basename(thrlib[0]))[0][3:]
+syslib = os.path.splitext(os.path.basename(syslib[0]))[0][3:]
 
 # Libraries needed for extension
 libs = ["python{}.{}".format(sys.version_info.major, sys.version_info.minor),
-        'boost_thread-mt' if sys.platform == "darwin" else 'boost_thread',
-        'boost_system-mt' if sys.platform == "darwin" else 'boost_system',
-        'jpeg']
+        thrlib, syslib, 'jpeg']
 
 # Library directories to find the above
 pylibdir = dsc.get_python_lib(plat_specific=1)
