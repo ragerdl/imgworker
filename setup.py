@@ -19,10 +19,9 @@ thrlib = 'libboost_thread*' + libext
 syslib = 'libboost_system*' + libext
 thrlib = glob(os.path.join(lpaths[0], thrlib)) + glob(os.path.join(lpaths[1], thrlib))
 syslib = glob(os.path.join(lpaths[0], syslib)) + glob(os.path.join(lpaths[1], syslib))
-print thrlib, syslib
 thrlib = os.path.splitext(os.path.basename(thrlib[0]))[0][3:]
 syslib = os.path.splitext(os.path.basename(syslib[0]))[0][3:]
-print thrlib, syslib
+
 # Libraries needed for extension
 pylib = "python{}".format(sys.version[:3])
 if sys.version[:3] == '3.4':
@@ -70,7 +69,7 @@ with open('README.md') as file:
     long_desc = file.read()
 
 setup(name="imgworker",
-      version="0.2.2",
+      version="0.2.3",
       description="Provides a set of functions for fast jpeg decoding "
                   "and accumulation for image statistics",
       ext_modules = [iw_ext],
