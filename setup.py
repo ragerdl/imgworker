@@ -11,57 +11,162 @@ from setuptools.command.build_ext import build_ext
 from setuptools import Extension
 import sys
 from glob import glob
+import platform as plat
+
+
+def _find_include_file(self, include):
+    for directory in self.compiler.include_dirs:
+        if os.path.isfile(os.path.join(directory, include)):
+            return 1
+    return 0
+
+def _find_library_file(self, library):
+    return self.compiler.find_library_file(self.compiler.library_dirs, library)
+
+def _add_directory(path, dir, where=None):
+    if dir is None:
+        return
+    dir = os.path.realpath(dir)
+    if os.path.isdir(dir) and dir not in path:
+        if where is None:
+            path.append(dir)
+        else:
+            path.insert(where, dir)
 
 # Need boost thread and system
 libext = '.dylib' if sys.platform == 'darwin' else '.so'
-lpaths = ['/usr/local/lib', '/usr/lib']
-thrlib = 'libboost_thread*' + libext
-syslib = 'libboost_system*' + libext
-thrlib = glob(os.path.join(lpaths[0], thrlib)) + glob(os.path.join(lpaths[1], thrlib))
-syslib = glob(os.path.join(lpaths[0], syslib)) + glob(os.path.join(lpaths[1], syslib))
-thrlib = os.path.splitext(os.path.basename(thrlib[0]))[0][3:]
-syslib = os.path.splitext(os.path.basename(syslib[0]))[0][3:]
 
-# Libraries needed for extension
-pylib = "python{}".format(sys.version[:3])
-if sys.version[:3] == '3.4':
-    pylib += 'm'
-libs = [pylib, thrlib, syslib, 'jpeg']
+class imgworker_build_ext(build_ext):
 
-pyincdir  = dsc.get_python_inc(plat_specific=1)
+    def build_extensions(self):
+        pyincdir  = dsc.get_python_inc(plat_specific=1)
+        pylibdir = os.path.join('/', *pyincdir.split('/')[:-2] + ['lib'])
 
-pylibdir = os.path.join('/', *pyincdir.split('/')[:-2] + ['lib'])
+        # Include directories needed by .cpp files in extension
+        try:
+            import numpy as np
+            npyincdir = np.get_include()
+        except ImportError:
+            npyincdir = os.path.join(
+                            pylibdir.replace('lib/python', 'local/lib/python'),
+                            'numpy', 'core', 'include')
+            print("Unable to import numpy, trying header %s".format(npyincdir))
 
-# Library directories to find the above
-# pylibdir = dsc.get_python_lib()
-libdirs = [pylibdir, '/usr/local/lib']
+        library_dirs = [pylibdir, '/usr/local/lib']
+        include_dirs = ['/usr/include', '/usr/local/include', pyincdir,
+                        npyincdir]
 
-# Hack to make sure it finds the right libpython with homebrew
 
-# if pylibdir.find('Cellar') > 0:
-#     brewpylibdir = os.path.join('/', *pylibdir.split('/')[:-2])
-#     libdirs.append(brewpylibdir)
+        for k in ('CFLAGS', 'LDFLAGS'):
+            if k in os.environ:
+                for match in re.finditer(r'-I([^\s]+)', os.environ[k]):
+                    _add_directory(include_dirs, match.group(1))
+                for match in re.finditer(r'-L([^\s]+)', os.environ[k]):
+                    _add_directory(library_dirs, match.group(1))
 
-# Include directories needed by .cpp files in extension
-try:
-    import numpy as np
-    npyincdir = np.get_include()
-except ImportError:
-    npyincdir = os.path.join(
-                    pylibdir.replace('lib/python', 'local/lib/python'),
-                    'numpy', 'core', 'include')
-    print("Unable to import numpy, trying header %s".format(npyincdir))
+        # include, rpath, if set as environment variables:
+        for k in ('C_INCLUDE_PATH', 'CPATH', 'INCLUDE'):
+            if k in os.environ:
+                for d in os.environ[k].split(os.path.pathsep):
+                    _add_directory(include_dirs, d)
 
-incdirs = ['/usr/include', '/usr/local/include', pyincdir, npyincdir]
+        for k in ('LD_RUN_PATH', 'LIBRARY_PATH', 'LIB'):
+            if k in os.environ:
+                for d in os.environ[k].split(os.path.pathsep):
+                    _add_directory(library_dirs, d)
 
-# Replace some of the python determined cflags and options
-os.environ['BASECFLAGS'] = '-fPIC'
-os.environ['OPT'] = '-O3'
+        prefix = dsc.get_config_var("prefix")
+        if prefix:
+            _add_directory(library_dirs, os.path.join(prefix, "lib"))
+            _add_directory(include_dirs, os.path.join(prefix, "include"))
 
-iw_ext = Extension('_ImgWorker', sources=['imgworker.cpp'],
-                   include_dirs=incdirs, library_dirs=libdirs, libraries=libs)
+        if sys.platform == "darwin":
+            # fink installation directories
+            _add_directory(library_dirs, "/sw/lib")
+            _add_directory(include_dirs, "/sw/include")
+            # darwin ports installation directories
+            _add_directory(library_dirs, "/opt/local/lib")
+            _add_directory(include_dirs, "/opt/local/include")
+            # if Homebrew is installed, use its lib and include directories
+            import subprocess
+            try:
+                prefix = subprocess.check_output(
+                    ['brew', '--prefix']
+                ).strip().decode('latin1')
+            except:
+                # Homebrew not installed
+                prefix = None
 
-# install_requires = ['numpy', ]
+            if prefix:
+                # add Homebrew's include and lib directories
+                _add_directory(library_dirs, os.path.join(prefix, 'lib'))
+                _add_directory(include_dirs, os.path.join(prefix, 'include'))
+
+        elif sys.platform.startswith("linux"):
+            arch_tp = (plat.processor(), plat.architecture()[0])
+            if arch_tp == ("x86_64", "32bit"):
+                # 32 bit build on 64 bit machine.
+                _add_directory(library_dirs, "/usr/lib/i386-linux-gnu")
+            else:
+                for platform_ in arch_tp:
+                    if not platform_:
+                        continue
+                    if platform_ in ["x86_64", "64bit"]:
+                        _add_directory(library_dirs, "/lib64")
+                        _add_directory(library_dirs, "/usr/lib64")
+                        _add_directory(
+                            library_dirs, "/usr/lib/x86_64-linux-gnu")
+                        break
+                    elif platform_ in ["i386", "i686", "32bit"]:
+                        _add_directory(
+                            library_dirs, "/usr/lib/i386-linux-gnu")
+                        break
+                    elif platform_ in ["aarch64"]:
+                        _add_directory(library_dirs, "/usr/lib64")
+                        _add_directory(
+                            library_dirs, "/usr/lib/aarch64-linux-gnu")
+                        break
+                else:
+                    raise ValueError(
+                        "Unable to identify Linux platform: `%s`" % platform_)
+
+        self.compiler.library_dirs = library_dirs + self.compiler.library_dirs
+        self.compiler.include_dirs = include_dirs + self.compiler.include_dirs
+
+        pylib = "python{}".format(sys.version[:3])
+        if sys.version[:3] == '3.4':
+            pylib += 'm'
+        libs = [pylib, 'jpeg']
+
+        if _find_include_file(self, "jpeglib.h"):
+            if _find_library_file(self, "jpeg"):
+                libs.append('jpeg')
+            else:
+                raise ValueError("Unable to find libjpeg")
+        else:
+            raise ValueError("Unable to find jpeglib.h")
+
+        if _find_include_file(self, "boost/thread.hpp"):
+            if _find_library_file(self, "boost_thread"):
+                libs.append("boost_thread")
+            elif _find_library_file(self, "boost_thread-mt"):
+                libs.append("boost_thread-mt")
+            else:
+                raise ValueError("Unable to find libboost_thread")
+
+            if _find_library_file(self, "boost_system"):
+                libs.append("boost_system")
+            elif _find_library_file(self, "boost_system-mt"):
+                libs.append("boost_system-mt")
+            else:
+                raise ValueError("Unable to find libboost_system")
+        else:
+            raise ValueError("Unable to find boost headers")
+
+        exts = [Extension('_ImgWorker', sources=['imgworker.cpp'],
+                           libraries=libs)]
+        build_ext.build_extensions(self)
+
 install_requires = [ ]
 test_requires = ['nose', ]
 
@@ -72,7 +177,7 @@ setup(name="imgworker",
       version="0.2.3",
       description="Provides a set of functions for fast jpeg decoding "
                   "and accumulation for image statistics",
-      ext_modules = [iw_ext],
+      ext_modules = [Extension('_ImgWorker', sources=['imgworker.cpp'])],
       packages=['imgworker'],
       author="Nervanasys",
       author_email="info@nervanasys.com",
@@ -80,5 +185,6 @@ setup(name="imgworker",
       url="http://nervanasys.com",
       install_requires=install_requires,
       tests_require=test_requires,
-      cmdclass={'build_ext': build_ext},
+      cmdclass={'build_ext': imgworker_build_ext},
 )
+
