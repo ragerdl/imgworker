@@ -136,7 +136,7 @@ class imgworker_build_ext(build_ext):
         pylib = "python{}".format(sys.version[:3])
         if sys.version[:3] == '3.4':
             pylib += 'm'
-        libs = [pylib, 'jpeg']
+        libs = [pylib]
 
         if _find_include_file(self, "jpeglib.h"):
             if _find_library_file(self, "jpeg"):
@@ -163,8 +163,14 @@ class imgworker_build_ext(build_ext):
         else:
             raise ValueError("Unable to find boost headers")
 
-        exts = [Extension('_ImgWorker', sources=['imgworker.cpp'],
-                           libraries=libs)]
+        print libs
+        iwt = Extension('_ImgWorker', sources=['imgworker.cpp'],
+                                   include_dirs=self.compiler.include_dirs,
+                                   library_dirs=self.compiler.library_dirs,
+                                   libraries=libs)
+        iwt._needs_stub = False
+        exts = [iwt]
+        self.extensions[:] = exts
         build_ext.build_extensions(self)
 
 install_requires = [ ]
