@@ -174,7 +174,7 @@ class imgworker_build_ext(build_ext):
         else:
             raise ValueError("Unable to find boost headers")
 
-        print libs
+        print(libs)
         iwt = Extension('_ImgWorker', sources=['imgworker.cpp'],
                                    include_dirs=self.compiler.include_dirs,
                                    library_dirs=self.compiler.library_dirs,
@@ -191,7 +191,7 @@ with open('README.md') as file:
     long_desc = file.read()
 
 setup(name="imgworker",
-      version="0.2.4",
+      version="0.2.5",
       description="Provides a set of functions for fast jpeg decoding "
                   "and accumulation for image statistics",
       ext_modules = [Extension('_ImgWorker', sources=['imgworker.cpp'])],
